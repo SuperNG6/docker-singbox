@@ -1,4 +1,4 @@
-FROM alpine:edge as builder
+FROM debian as builder
 
 RUN apk add --no-cache curl \
     &&  bash -c "$(curl -L https://sing-box.vercel.app)" @ install --go
