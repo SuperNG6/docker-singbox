@@ -1,4 +1,4 @@
-FROM alpine
+FROM alpine:edge
 
 RUN apk add --no-cache curl \
     &&  bash -c "$(curl -L https://sing-box.vercel.app)" @ install --beta
