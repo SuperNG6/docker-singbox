@@ -1,4 +1,4 @@
-FROM debian
+FROM alpine
 
 RUN apk add --no-cache curl \
     &&  bash -c "$(curl -L https://sing-box.vercel.app)" @ install --go
