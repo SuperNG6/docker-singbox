@@ -1,5 +1,4 @@
-FROM lsiobase/alpine:3.17-69ac1933-ls26 as builder
-
+FROM debian
 
 RUN apk add --no-cache curl \
     &&  bash -c "$(curl -L https://sing-box.vercel.app)" @ install --beta
