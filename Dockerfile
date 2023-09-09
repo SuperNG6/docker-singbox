@@ -7,9 +7,6 @@ RUN apk add --no-cache curl \
 # install static sing-box
 FROM scratch
 
-# set label
-LABEL maintainer="NG6"
-
 # copy local files && sing-box
 COPY --from=builder /usr/local/bin/sing-box /usr/local/bin/sing-box
 COPY --from=builder /usr/local/share/sing-box/geoip.db /usr/local/share/sing-box/geoip.db

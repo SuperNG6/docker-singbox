@@ -2,6 +2,8 @@ name: Build Docker Image
 
 on:
   workflow_dispatch:
+  push:
+    
 
 jobs:
   buildx:
@@ -26,9 +28,6 @@ jobs:
       - name: Set Version
         id: set-version
         run: |
-          echo ${{ steps.set-version.outputs.version }} > ./tag/tag-${{ steps.set-version.outputs.version }}
-          echo "::set-output name=status::success"
-
           latest_release=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
           echo "最新的 sing-box 正式版版本号是: $latest_release"
           echo "::set-output name=latest_release::$latest_release"
