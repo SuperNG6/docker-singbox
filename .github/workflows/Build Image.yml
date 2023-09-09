@@ -1,0 +1,66 @@
+name: Build Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  buildx:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ReleaseTag
+      - name: Set Version
+        id: set-version
+        run: |
+          echo ${{ steps.set-version.outputs.version }} > ./tag/tag-${{ steps.set-version.outputs.version }}
+          echo "::set-output name=status::success"
+
+          latest_release=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
+          echo "最新的 sing-box 正式版版本号是: $latest_release"
+          echo "::set-output name=latest_release::$latest_release"
+
+
+          latest_prerelease=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[0].tag_name')
+          echo "最新的 sing-box 预发布版版本号是: $latest_prerelease"
+          echo "::set-output name=latest_prerelease::$latest_prerelease"
+
+
+          echo "::set-output name=status::success"
+
+      # Build and push latest_release
+      - name: Build dockerfile
+        if: steps.set-version.outputs.status == 'success'
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          push: true
+          tags: |
+            superng6/singbox:${{ steps.set-version.outputs.latest_release }}
+            superng6/singbox:latest
+
+      # Build and push latest_prerelease
+      - name: Build dockerfile
+        if: steps.set-version.outputs.status == 'success'
+        uses: docker/build-push-action@v2
+        with:
+          file: ./DockerfileDev
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          push: true
+          tags: |
+            superng6/singbox:${{ steps.set-version.outputs.latest_prerelease }}
+            superng6/singbox:dev
