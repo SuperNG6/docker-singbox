@@ -1,6 +1,6 @@
 FROM debian as builder
 
-RUN apk add --no-cache curl \
+RUN apt update && apt -y install curl \
     &&  bash -c "$(curl -L https://sing-box.vercel.app)" @ install --beta
 
 # install static sing-box
