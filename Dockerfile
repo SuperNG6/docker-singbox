@@ -4,6 +4,7 @@ WORKDIR /go/src
 
 RUN apk add --no-cache git
 
+ARG VERSION=""
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH \
     go install -v -tags with_wireguard,with_quic,with_ech,with_reality_server \
     -trimpath -ldflags "-s -w -buildid=" \ 
