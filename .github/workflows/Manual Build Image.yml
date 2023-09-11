@@ -1,10 +1,7 @@
-name: Build Docker Image
+name: Manual Build Docker Image
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '30 21 * * *'
-  push:
 
 jobs:
   buildx:
