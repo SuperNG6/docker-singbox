@@ -25,7 +25,6 @@ jobs:
 
       # 获得仓库中的ReleaseTag
       - name: Set Version
-        if: steps.check-changes.outputs.status == 'success'
         id: set-version
         run: |
           echo "::set-output name=version::$(cat ReleaseTag | head -n1)"

@@ -41,16 +41,9 @@ jobs:
           git push -v --progress
           echo "::set-output name=status::success"
 
-      # 检查版本是否更新成功
-      - name: Check for changes
-        if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
-        id: check-changes
-        run: |
-          echo "::set-output name=status::success"
-
       # 获得仓库中的ReleaseTag
       - name: Set Version
-        if: steps.check-changes.outputs.status == 'success'
+        if: steps.git-push.outputs.status == 'success'
         id: set-version
         run: |
           echo "::set-output name=version::$(cat ReleaseTag | head -n1)"
