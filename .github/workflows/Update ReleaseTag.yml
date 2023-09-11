@@ -1,0 +1,28 @@
+name: Update Singbox ReleaseTag
+
+on:
+  # 设置手动触发和定时每天 UTC 时间 21:00 触发
+  workflow_dispatch:
+  schedule:
+    - cron: '0 21 * * *'
+    
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout codebase
+        # 使用官方的 actions/checkout 动作来获取仓库代码
+        uses: actions/checkout@v2
+
+      - name: Execute Update Script
+        run: bash .github/workflows/update_release_tag.sh
+             echo ${{ steps.set-version.outputs.version }} > ./ReleaseTag
+
+      # push到GitHub的项目当中
+      - name: Push
+        if: steps.set-version.outputs.status == 'success'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -am "Update ReleaseTag ${{ steps.set-version.outputs.version }}"
+          git push -v --progress

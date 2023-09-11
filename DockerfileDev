@@ -1,14 +1,22 @@
-FROM debian as builder
+FROM --platform=$BUILDPLATFORM golang:1.21.1-alpine3.18 as builder
 
-RUN apt update && apt -y install curl \
-    &&  bash -c "$(curl -L https://sing-box.vercel.app)" @ install --beta
+WORKDIR /go/src
+
+COPY PreReleaseTag /go/src
+
+RUN apk add --no-cache git
+
+RUN export VERSION=$(cat PreReleaseTag | grep -oP '(?<=release=)[^,]+')
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH \
+    go install -v -tags with_wireguard,with_quic,with_ech,with_reality_server \
+    -trimpath -ldflags "-s -w -buildid=" \ 
+    github.com/sagernet/sing-box/cmd/sing-box@$VERSION
 
 # install static sing-box
 FROM scratch
 
 # copy local files && sing-box
-COPY --from=builder /usr/local/bin/sing-box /usr/local/bin/sing-box
-COPY --from=builder /usr/local/share/sing-box/geoip.db /usr/local/share/sing-box/geoip.db
-COPY --from=builder /usr/local/share/sing-box/geosite.db /usr/local/share/sing-box/geosite.db
+COPY --from=builder /go/bin/sing-box /usr/local/bin/sing-box
 
-CMD [ "run","-D","/usr/local/bin/sing-box"]
+CMD [ "run", "-D", "/usr/local/bin/sing-box" ]
