@@ -25,21 +25,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ReleaseTag
+
+      - name: Execute Update Script
+        run: bash .github/workflows/update_release_tag.sh
+
+      # push到GitHub的项目当中
+      - name: Push
+        if: steps.set-version.outputs.status == 'success'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -am "Update ReleaseTag ${{ steps.set-version.outputs.version }}"
+          git push -v --progress
+
+      # 获得仓库中的ReleaseTag
       - name: Set Version
         id: set-version
         run: |
-          latest_release=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
-          echo "最新的 sing-box 正式版版本号是: $latest_release"
-          echo "::set-output name=latest_release::$latest_release"
-
-
-          latest_prerelease=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[0].tag_name')
-          echo "最新的 sing-box 预发布版版本号是: $latest_prerelease"
-          echo "::set-output name=latest_prerelease::$latest_prerelease"
-
-
-          echo "::set-output name=status::success"
+          echo "::set-output name=version::$(cat ReleaseTag | head -n1)"
+          echo "::set-output name=pre_version::$(cat RreReleaseTag | head -n1)"
+          echo "ReleaseTag=$(cat ReleaseTag | head -n1)"
+          echo "PreReleaseTag=$(cat PreReleaseTag | head -n1)"
 
       # Build and push latest_release
       - name: Build dockerfile
@@ -52,7 +58,9 @@ jobs:
           tags: |
             superng6/singbox:${{ steps.set-version.outputs.latest_release }}
             superng6/singbox:latest
-
+          build-args: |
+            VERSION=${{ steps.set-version.outputs.version }}
+            
       # Build and push latest_prerelease
       - name: Build dockerfile
         if: steps.set-version.outputs.status == 'success'
@@ -62,5 +70,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            superng6/singbox:${{ steps.set-version.outputs.latest_prerelease }}
+            superng6/singbox:${{ steps.set-version.outputs.prerelease_version }}
             superng6/singbox:dev
+          build-args: |
+            VERSION=${{ steps.set-version.outputs.pre_version }}

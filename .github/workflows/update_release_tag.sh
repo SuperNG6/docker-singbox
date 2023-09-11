@@ -10,8 +10,8 @@ OnlineReleaseTag=${RELEASE_TAG}
 OnlinePrereleaseTag=${PRERELEASE_TAG}
 
 # 从 releasetag 文件中提取本地的版本号
-LocalReleaseTag=$(cat ReleaseTag | grep -oP '(?<=release=)[^,]+')
-LocalPrereleaseTag=$(cat PreReleaseTag | grep -oP '(?<=prerelease=)[^,]+')
+LocalReleaseTag=$(cat ReleaseTag | head -n1)
+LocalPrereleaseTag=$(cat PreReleaseTag | head -n1)
 
 echo "本地 Release 版本号: ${LocalReleaseTag}"
 echo "本地 Prerelease 版本号: ${LocalPrereleaseTag}"

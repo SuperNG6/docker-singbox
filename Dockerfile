@@ -2,11 +2,7 @@ FROM --platform=$BUILDPLATFORM golang:1.21.1-alpine3.18 as builder
 
 WORKDIR /go/src
 
-COPY ReleaseTag /go/src
-
 RUN apk add --no-cache git
-
-RUN export VERSION=$(cat ReleaseTag | grep -oP '(?<=release=)[^,]+')
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH \
     go install -v -tags with_wireguard,with_quic,with_ech,with_reality_server \
