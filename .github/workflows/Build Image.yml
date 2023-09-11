@@ -47,11 +47,12 @@ jobs:
           echo "ReleaseTag=$(cat ReleaseTag | head -n1)"
           echo "PreReleaseTag=$(cat PreReleaseTag | head -n1)"
           echo "::set-output name=status::success"
+          
 
       # Build and push latest_release
       - name: Build dockerfile
         if: steps.up-version.outputs.status == 'success'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64
@@ -65,7 +66,7 @@ jobs:
       # Build and push latest_prerelease
       - name: Build PreRelease dockerfile
         if: steps.up-version.outputs.pstatus == 'success'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./DockerfileDev
           platforms: linux/amd64,linux/arm/v7,linux/arm64
@@ -76,7 +77,7 @@ jobs:
           build-args: |
             VERSION=${{ steps.set-version.outputs.pre_version }}
 
-      # push到GitHub的项目当中
+      # push 最新版本号到项目中
       - name: git push
         if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
         id: git-push

@@ -1,8 +1,11 @@
-name: Manual Build Docker Image
+name: Build Docker Image
 
 on:
   workflow_dispatch:
-    
+  schedule:
+    - cron: '30 21 * * *'
+  push:
+
 jobs:
   buildx:
     runs-on: ubuntu-latest
@@ -25,18 +28,19 @@ jobs:
 
       # 获得仓库中的ReleaseTag
       - name: Set Version
+        if: steps.check-changes.outputs.status == 'success'
         id: set-version
         run: |
           echo "::set-output name=version::$(cat ReleaseTag | head -n1)"
-          echo "::set-output name=pre_version::$(cat RreReleaseTag | head -n1)"
+          echo "::set-output name=pre_version::$(cat PreReleaseTag | head -n1)"
           echo "ReleaseTag=$(cat ReleaseTag | head -n1)"
           echo "PreReleaseTag=$(cat PreReleaseTag | head -n1)"
           echo "::set-output name=status::success"
+          
 
       # Build and push latest_release
       - name: Build dockerfile
-        if: steps.set-version.outputs.status == 'success'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64
@@ -49,8 +53,7 @@ jobs:
 
       # Build and push latest_prerelease
       - name: Build PreRelease dockerfile
-        if: steps.set-version.outputs.status == 'success'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: ./DockerfileDev
           platforms: linux/amd64,linux/arm/v7,linux/arm64
@@ -60,3 +63,4 @@ jobs:
             superng6/singbox:dev
           build-args: |
             VERSION=${{ steps.set-version.outputs.pre_version }}
+
