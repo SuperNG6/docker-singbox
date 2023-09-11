@@ -72,7 +72,7 @@ jobs:
         if: steps.up-version.outputs.pstatus == 'success'
         uses: docker/build-push-action@v4
         with:
-          file: ./DockerfileDev
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: true
           tags: |
