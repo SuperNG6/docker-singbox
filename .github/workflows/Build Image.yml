@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '30 21 * * *'
-    
+  push:
+  
 jobs:
   buildx:
     runs-on: ubuntu-latest
@@ -31,7 +32,7 @@ jobs:
 
       # push到GitHub的项目当中
       - name: Push
-        if: steps.up-version.outputs.status == 'success'
+        if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
         id: check-push
         run: |
           git config --local user.email "action@github.com"
@@ -46,7 +47,7 @@ jobs:
         id: set-version
         run: |
           echo "::set-output name=version::$(cat ReleaseTag | head -n1)"
-          echo "::set-output name=pre_version::$(cat RreReleaseTag | head -n1)"
+          echo "::set-output name=pre_version::$(cat PreReleaseTag | head -n1)"
           echo "ReleaseTag=$(cat ReleaseTag | head -n1)"
           echo "PreReleaseTag=$(cat PreReleaseTag | head -n1)"
           echo "::set-output name=status::success"
@@ -66,12 +67,12 @@ jobs:
             VERSION=${{ steps.set-version.outputs.version }}
 
       # Build and push latest_prerelease
-      - name: Build dockerfile
-        if: steps.set-version.outputs.status == 'success'
+      - name: Build PreRelease dockerfile
+        if: steps.set-version.outputs.pstatus == 'success'
         uses: docker/build-push-action@v2
         with:
           file: ./DockerfileDev
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: true
           tags: |
             superng6/singbox:${{ steps.set-version.outputs.pre_version }}

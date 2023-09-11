@@ -19,12 +19,19 @@ echo "在线 Release 版本号: ${RELEASE_TAG}"
 echo "在线 Prerelease 版本号: ${PRERELEASE_TAG}"
 
 # 检查本地版本号和在线版本号是否不同，如果有任何一个版本号不同，则触发更新动作
-if [ "${LocalReleaseTag}" != "${OnlineReleaseTag}" ] || [ "${LocalPrereleaseTag}" != "${OnlinePrereleaseTag}" ]
+if [ "${LocalReleaseTag}" != "${OnlineReleaseTag}" ]
 then
    # 设置输出变量以便在后续步骤中使用
    echo "::set-output name=release_version::${RELEASE_TAG}"
-   echo "::set-output name=prerelease_version::${PRERELEASE_TAG}"
    echo  ${RELEASE_TAG} > ./ReleaseTag
-   echo  ${PRERELEASE_TAG} > ./PreReleaseTag
    echo "::set-output name=status::success"
+fi
+
+# 检查本地版本号和在线版本号是否不同，如果有任何一个版本号不同，则触发更新动作
+if [ "${LocalPrereleaseTag}" != "${OnlinePrereleaseTag}" ]
+then
+   # 设置输出变量以便在后续步骤中使用
+   echo "::set-output name=prerelease_version::${PRERELEASE_TAG}"
+   echo  ${PRERELEASE_TAG} > ./PreReleaseTag
+   echo "::set-output name=pstatus::success"
 fi
