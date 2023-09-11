@@ -29,6 +29,18 @@ jobs:
         id: up-version
         run: bash .github/workflows/update_release_tag.sh
 
+
+      # push 最新版本号到项目中
+      - name: git push
+        if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
+        id: git-push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -am "Update ReleaseTag ${{ steps.set-version.outputs.version }}"
+          git push -v --progress
+          echo "::set-output name=status::success"
+
       # 检查版本是否更新成功
       - name: Check for changes
         if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
@@ -76,13 +88,3 @@ jobs:
           build-args: |
             VERSION=${{ steps.set-version.outputs.pre_version }}
 
-      # push 最新版本号到项目中
-      - name: git push
-        if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
-        id: git-push
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -am "Update ReleaseTag ${{ steps.set-version.outputs.version }}"
-          git push -v --progress
-          echo "::set-output name=status::success"
