@@ -27,26 +27,31 @@ jobs:
 
 
       - name: Execute Update Script
+        id: up-version
         run: bash .github/workflows/update_release_tag.sh
 
       # push到GitHub的项目当中
       - name: Push
-        if: steps.set-version.outputs.status == 'success'
+        if: steps.up-version.outputs.status == 'success'
+        id: check-push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am "Update ReleaseTag ${{ steps.set-version.outputs.version }}"
           git push -v --progress
+          echo "::set-output name=status::success"
 
       # 获得仓库中的ReleaseTag
       - name: Set Version
+        if: steps.check-push.outputs.status == 'success'
         id: set-version
         run: |
           echo "::set-output name=version::$(cat ReleaseTag | head -n1)"
           echo "::set-output name=pre_version::$(cat RreReleaseTag | head -n1)"
           echo "ReleaseTag=$(cat ReleaseTag | head -n1)"
           echo "PreReleaseTag=$(cat PreReleaseTag | head -n1)"
-
+          echo "::set-output name=status::success"
+          
       # Build and push latest_release
       - name: Build dockerfile
         if: steps.set-version.outputs.status == 'success'
@@ -60,7 +65,7 @@ jobs:
             superng6/singbox:latest
           build-args: |
             VERSION=${{ steps.set-version.outputs.version }}
-            
+
       # Build and push latest_prerelease
       - name: Build dockerfile
         if: steps.set-version.outputs.status == 'success'
