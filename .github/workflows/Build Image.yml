@@ -51,7 +51,7 @@ jobs:
           echo "ReleaseTag=$(cat ReleaseTag | head -n1)"
           echo "PreReleaseTag=$(cat PreReleaseTag | head -n1)"
           echo "::set-output name=status::success"
-          
+
       # Build and push latest_release
       - name: Build dockerfile
         if: steps.set-version.outputs.status == 'success'
@@ -61,7 +61,7 @@ jobs:
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: true
           tags: |
-            superng6/singbox:${{ steps.set-version.outputs.latest_release }}
+            superng6/singbox:${{ steps.set-version.outputs.version }}
             superng6/singbox:latest
           build-args: |
             VERSION=${{ steps.set-version.outputs.version }}
@@ -75,7 +75,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            superng6/singbox:${{ steps.set-version.outputs.prerelease_version }}
+            superng6/singbox:${{ steps.set-version.outputs.pre_version }}
             superng6/singbox:dev
           build-args: |
             VERSION=${{ steps.set-version.outputs.pre_version }}
