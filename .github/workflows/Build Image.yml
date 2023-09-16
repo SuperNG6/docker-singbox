@@ -32,34 +32,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # push 最新版本号到项目中
-      - name: git push
-        # 条件判断：如果 up-version 步骤的输出中 status 或者 pstatus 为 'success' 则执行该步骤  
-        if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
-        id: git-push
-        run: |
-          # 设置本地 Git 用户信息
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # 判断 release_version 和 prerelease_version 是否都不为空
-          if [[ -n "${{ steps.git-push.outputs.release_version }}" && -n "${{ steps.git-push.outputs.prerelease_version }}" ]]; then
-            git commit -am "Update ReleaseTag ${{ steps.git-push.outputs.release_version }}, PreReleaseTag ${{ steps.git-push.outputs.prerelease_version }}"
-            git push -v --progress
-            echo "::set-output name=status::success"
-          elif [[ -n "${{ steps.git-push.outputs.release_version }}" ]]; then
-            git commit -am "Update ReleaseTag ${{ steps.git-push.outputs.release_version }}"
-            git push -v --progress
-            echo "::set-output name=status::success"
-          elif [[ -n "${{ steps.git-push.outputs.prerelease_version }}" ]]; then
-            git commit -am "Update PreReleaseTag ${{ steps.git-push.outputs.prerelease_version }}"
-            git push -v --progress
-            echo "::set-output name=status::success"
-          fi
-
       # 获得仓库中的ReleaseTag
       - name: Set Version
-        if: steps.git-push.outputs.status == 'success'
+        if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
         id: set-version
         run: |
           echo "::set-output name=version::$(cat ReleaseTag | head -n1)"

@@ -1,5 +1,10 @@
 #!/bin/bash
 
+
+# 设置本地 Git 用户信息
+git config --local user.email "action@github.com"
+git config --local user.name "GitHub Action"
+
 # 通过 GitHub API 获取最新 release 的版本号
 RELEASE_TAG=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[] | select(.prerelease == false) | .tag_name' | head -n 1)
 
@@ -23,7 +28,9 @@ if [ "${LocalReleaseTag}" != "${OnlineReleaseTag}" ]
 then
    # 设置输出变量以便在后续步骤中使用
    echo "::set-output name=release_version::${RELEASE_TAG}"
-   echo  ${RELEASE_TAG} > ./ReleaseTag
+   echo ${RELEASE_TAG} > ./ReleaseTag
+   git commit -am "Update ReleaseTag ${RELEASE_TAG}"
+   git push -v --progress
    echo "::set-output name=status::success"
 fi
 
@@ -33,5 +40,8 @@ then
    # 设置输出变量以便在后续步骤中使用
    echo "::set-output name=prerelease_version::${PRERELEASE_TAG}"
    echo  ${PRERELEASE_TAG} > ./PreReleaseTag
+   git commit -am "Update PreReleaseTag ${PRERELEASE_TAG}"
+   git push -v --progress
    echo "::set-output name=pstatus::success"
 fi
+
