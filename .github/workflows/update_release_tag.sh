@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # 设置本地 Git 用户信息
 git config --local user.email "action@github.com"
 git config --local user.name "GitHub Action"
@@ -39,7 +38,7 @@ if [ "${LocalPrereleaseTag}" != "${OnlinePrereleaseTag}" ]
 then
    # 设置输出变量以便在后续步骤中使用
    echo "::set-output name=prerelease_version::${PRERELEASE_TAG}"
-   echo  ${PRERELEASE_TAG} > ./PreReleaseTag
+   echo ${PRERELEASE_TAG} > ./PreReleaseTag
    git commit -am "Update PreReleaseTag ${PRERELEASE_TAG}"
    git push -v --progress
    echo "::set-output name=pstatus::success"
