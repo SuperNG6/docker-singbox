@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 设置本地 Git 用户信息
 git config --local user.email "action@github.com"
