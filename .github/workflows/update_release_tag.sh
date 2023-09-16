@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # 通过 GitHub API 获取最新 release 的版本号
-RELEASE_TAG=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
+RELEASE_TAG=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[] | select(.prerelease == false) | .tag_name' | head -n 1)
 
 # 通过 GitHub API 获取 prerelease 的版本号
-PRERELEASE_TAG=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[0].tag_name')
+PRERELEASE_TAG=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[] | select(.prerelease == true) | .tag_name' | head -n 1)
 
 OnlineReleaseTag=${RELEASE_TAG}
 OnlinePrereleaseTag=${PRERELEASE_TAG}
