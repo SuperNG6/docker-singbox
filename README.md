@@ -42,8 +42,8 @@ The universal proxy platform.
 | ----------------------------- | ----------------- |
 | **/etc/sing-box/config.json** | Config file       |
 | **/etc/sing-box/**            | Working directory |
-| **/etc/sing-box/geoip/**       | geoip    |
-
+| **/etc/sing-box/geoip/geoip.db**       | geoip    |
+| **/etc/sing-box/geoip/geosite.db**       | geosite.db    |
 
 ## Examples of usage
 
