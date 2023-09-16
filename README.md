@@ -42,7 +42,7 @@ The universal proxy platform.
 | ----------------------------- | ----------------- |
 | **/etc/sing-box/config.json** | Config file       |
 | **/etc/sing-box/**            | Working directory |
-| **/etc/sing-box/geoip**       | geoip | geosite   |
+| **/etc/sing-box/geoip/**       | geoip    |
 
 
 ## Examples of usage
