@@ -46,7 +46,7 @@ jobs:
       # Build and push latest_release
       - name: Build dockerfile
         if: steps.up-version.outputs.status == 'success'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           file: ./Dockerfile
           platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64,linux/s390x
@@ -60,7 +60,7 @@ jobs:
       # Build and push latest_prerelease
       - name: Build PreRelease dockerfile
         if: steps.up-version.outputs.pstatus == 'success'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           file: ./Dockerfile
           platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64,linux/s390x
