@@ -23,7 +23,7 @@ jobs:
       
       - name: Set up Docker Buildx
         if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
         if: steps.up-version.outputs.status == 'success' || steps.up-version.outputs.pstatus == 'success'
