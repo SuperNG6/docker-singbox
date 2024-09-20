@@ -7,7 +7,7 @@ RUN apk add --no-cache git wget ca-certificates
 ARG VERSION=""
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH \
-    go install -v -tags with_utls,with_wireguard,with_quic,with_ech,with_reality_server,with_gvisor \
+    go install -v -tags with_utls,with_wireguard,with_quic,with_ech,with_reality_server,with_gvisor with_clash_api \
     -trimpath -ldflags "-s -w -buildid=" \ 
     github.com/sagernet/sing-box/cmd/sing-box@$VERSION
 
