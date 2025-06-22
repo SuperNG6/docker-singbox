@@ -1,83 +1,141 @@
-# sing-box
+# sing-box Docker Image
 
-The universal proxy platform.
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/SuperNG6/docker-singbox/Auto%20Build%20Image.yml?branch=main&logo=github&label=Auto%20Build)](https://github.com/SuperNG6/docker-singbox/actions/workflows/Auto%20Build%20Image.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/superng6/singbox?logo=docker&label=Docker%20Hub%20Pulls)](https://hub.docker.com/r/superng6/singbox)
+[![GitHub Stars](https://img.shields.io/github/stars/SuperNG6/docker-singbox?logo=github&label=Stars)](https://github.com/SuperNG6/docker-singbox)
 
-## Documentation
+这是一个基于 [SagerNet/sing-box](https://github.com/SagerNet/sing-box) 官方 Release 自动构建的多平台 Docker 镜像。
 
-[https://sing-box.sagernet.org](https://sing-box.sagernet.org/)
+官方文档: [https://sing-box.sagernet.org](https://sing-box.sagernet.org/)
 
+---
 
+## 镜像仓库地址
 
-## Tags & Feature
+镜像同时推送到 Docker Hub 和 GitHub Container Registry (GHCR)。
 
-- **`latest`** *([main branch/stable release](https://github.com/SagerNet/sing-box/tree/main))*
+- **Docker Hub:**
+  ```console
+  docker pull superng6/singbox
+  ```
+- **GHCR.io:**
+  ```console
+  docker pull ghcr.io/superng6/singbox
+  ```
 
-  - Enabled feature:
+---
 
-  > `with_gvisor,with_quic,with_wireguard,with_utls,with_reality_server,with_ech`
+## 标签 (Tags) 与功能
 
-- **`dev`** *([dev branch/beta release](https://github.com/SagerNet/sing-box/tree/dev))*
+本仓库根据上游的官方 Release 自动构建并维护两个主要标签：
 
-  - Enabled feature:
+-   **`latest`** & `version tag` (e.g., `v1.10.0`)
+    -   追踪 [SagerNet/sing-box 的最新稳定版 (Stable Release)](https://github.com/SagerNet/sing-box/releases)。
+    -   这是推荐在生产环境中使用的版本。
 
-  > `with_gvisor,with_quic,with_wireguard,with_utls,with_reality_server,with_ech`
+-   **`dev`** & `version tag` (e.g., `v1.12.0-rc.1`)
+    -   追踪 [SagerNet/sing-box 的最新预发布版 (Pre-release)](https://github.com/SagerNet/sing-box/releases)。
+    -   包含最新功能，但可能不稳定，适合尝鲜和测试。
 
-- **`git`** *([dev-next branch/latest commit](https://github.com/SagerNet/sing-box/tree/dev-next))*
+#### ✅ 编译时包含的功能 (Build Features):
 
-  - Enabled feature:
+```
+with_gvisor, with_quic, with_dhcp, with_wireguard, with_utls, with_acme, with_clash_api, with_tailscale
+```
 
-  > `with_gvisor,with_quic,with_wireguard,with_utls,with_reality_server,with_ech`
+---
 
+## 支持的架构
 
+通过 GitHub Actions 自动构建，支持以下所有架构：
 
-## Supported architectures
+- `linux/amd64`
+- `linux/arm64` (or `linux/arm64/v8`)
+- `linux/arm/v7`
+- `linux/ppc64le`
+- `linux/s390x`
 
-- `i386`, `amd64`, `arm32v7`, `arm64v8`, `s390x`
+---
 
+## 配置文件和数据卷
 
+-   **`/etc/sing-box/config.json `**: 核心配置文件路径。
+-   **`/etc/sing-box/`**: 工作目录。你可以将 GeoIP/GeoSite 等数据文件放在此处，并在 `config.json` 中引用。
 
-## Volumes
+---
 
-| Variable                      | Description       |
-| ----------------------------- | ----------------- |
-| **/etc/sing-box/config.json** | Config file       |
-| **/etc/sing-box/**            | Working directory |
-| **/etc/sing-box/geoip/geoip.db**       | geoip    |
-| **/etc/sing-box/geoip/geosite.db**       | geosite.db    |
+## 使用示例
 
-## Examples of usage
+以下示例展示了如何在 `TUN` 模式下运行 sing-box
 
-### Docker Compose *(Recommended, [More details](https://docs.docker.com/compose/features-uses/))*
+### Docker Compose (推荐)
 
+**使用 Docker Hub 镜像:**
 ```yaml
-version: '3'
-
+# docker-compose.yml
 services:
   sing-box:
-    image: superng6/singbox
+    image: superng6/singbox:latest
+    container_name: sing-box
     restart: unless-stopped
     network_mode: "host"
     volumes:
-      - $PWD/:/etc/sing-box/
+      # 将当前目录下的 config.json 挂载到容器中
+      - ./config.json:/etc/sing-box/config.json 
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun
 ```
 
-### Docker CLI *([More details](https://docs.docker.com/engine/reference/commandline/cli/))*
-
-```console
-docker run -d \
-  --network host \
-  --restart unless-stopped \
-  --volume $PWD/:/etc/sing-box/ \
-  --cap-add NET_ADMIN \
-  --device /dev/net/tun
-  superng6/singbox
+**使用 GHCR.io 镜像:**
+```yaml
+# docker-compose.yml
+services:
+  sing-box:
+    image: ghcr.io/superng6/singbox:latest
+    container_name: sing-box
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./config.json:/etc/sing-box/config.json 
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
 ```
 
+### Docker CLI
 
+**使用 Docker Hub 镜像:**
+```console
+docker run -d \
+  --name sing-box \
+  --network host \
+  --restart unless-stopped \
+  -v $PWD/config.json:/etc/sing-box/config.json \
+  --cap-add NET_ADMIN \
+  --device /dev/net/tun \
+  superng6/singbox:latest
+```
+
+**使用 GHCR.io 镜像:**
+```console
+docker run -d \
+  --name sing-box \
+  --network host \
+  --restart unless-stopped \
+  -v $PWD/config.json:/etc/sing-box/config.json \
+  --cap-add NET_ADMIN \
+  --device /dev/net/tun \
+  ghcr.io/superng6/singbox:latest
+```
+
+---
+
+## 自动化构建
+
+本项目的所有镜像均通过 [GitHub Actions](https://github.com/SuperNG6/docker-singbox/actions) 自动构建，确保镜像的纯净与及时更新。
 
 ## License
 

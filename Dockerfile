@@ -1,21 +1,30 @@
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.24 AS builder
+ARG TARGETARCH
 
-WORKDIR /go/src
+# 设置工作目录
+WORKDIR /app
 
-RUN apk add --no-cache git wget ca-certificates
+RUN apt update && apt install -y --no-install-recommends git build-essential
 
 ARG VERSION=""
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=$TARGETARCH
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH \
-    go install -v -tags with_utls,with_wireguard,with_quic,with_ech,with_reality_server,with_gvisor,with_clash_api \
-    -trimpath -ldflags "-s -w -buildid=" \ 
-    github.com/sagernet/sing-box/cmd/sing-box@$VERSION
+RUN git clone --depth 1 --branch ${VERSION} https://github.com/sagernet/sing-box.git .
 
-# install static sing-box
-FROM scratch
+RUN LD_FLAGS="-s -w -buildid= -X 'github.com/sagernet/sing-box/constant.Version=${VERSION}'" && \
+    cd cmd/sing-box && \
+    go build -v -trimpath -tags "with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale" \
+    -ldflags="$LD_FLAGS" \
+    -o /app/sing-box
 
-# copy local files && sing-box
-COPY --from=builder /go/bin/sing-box /usr/bin/sing-box
-COPY --from=builder /etc/ssl /etc/ssl
 
-CMD ["/usr/bin/sing-box", "run", "-D", "/etc/sing-box"]
+FROM gcr.io/distroless/static-debian12:latest
+
+COPY --from=builder /app/sing-box /usr/bin/sing-box
+
+ENV TZ=Etc/UTC
+
+ENTRYPOINT ["/usr/bin/sing-box"]
+CMD ["run", "-D", "/etc/sing-box"]

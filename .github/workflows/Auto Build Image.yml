@@ -1,12 +1,11 @@
-name: Manual Build Docker Image
+name: Auto Build Docker Image
 
 on:
   # 允许手动触发
   workflow_dispatch:
-  # 当 Dockerfile 发生变化时自动触发
-  push:
-    paths:
-      - 'Dockerfile'
+  # 定时触发（每天 UTC 21:30）
+  schedule:
+    - cron: '30 21 * * *'
 
 env:
   # Docker Hub 镜像名称
@@ -15,31 +14,32 @@ env:
   GHCR_IMAGE: ghcr.io/superng6/singbox
 
 jobs:
-  # Job 1: 准备阶段 - 直接读取本地文件中的版本号
+  # Job 1: 准备阶段 - 检查上游版本，决定是否需要构建
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      stable_version: ${{ steps.set-version.outputs.stable_version }}
-      pre_version: ${{ steps.set-version.outputs.pre_version }}
+      should_build_stable: ${{ steps.check-version.outputs.should_build_stable }}
+      should_build_pre: ${{ steps.check-version.outputs.should_build_pre }}
+      stable_version: ${{ steps.check-version.outputs.stable_version }}
+      pre_version: ${{ steps.check-version.outputs.pre_version }}
     steps:
-      - name: Checkout
+      - name: Checkout a repo
         uses: actions/checkout@v4
-      
-      - name: 从文件设置版本号
-        id: set-version
-        run: |
-          STABLE_VERSION=$(cat ReleaseTag | head -n1)
-          PRE_VERSION=$(cat PreReleaseTag | head -n1)
-          echo "stable_version=${STABLE_VERSION}" >> $GITHUB_OUTPUT
-          echo "pre_version=${PRE_VERSION}" >> $GITHUB_OUTPUT
-
-  # Job 2-1: 构建稳定版 (无条件)
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 检查并更新版本标签文件
+        id: check-version
+        run: bash .github/workflows/update_release_tag.sh
+        
+  # Job 2-1: 构建稳定版 (Stable) - 仅在需要时运行
   build-stable:
     runs-on: ubuntu-latest
     needs: prepare
+    if: needs.prepare.outputs.should_build_stable == 'true'
     permissions:
       contents: read
-      packages: write
+      packages: write # 需要写 ghcr.io 的权限
     strategy:
       fail-fast: false
       matrix:
@@ -74,7 +74,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: 构建并推送到双仓库 (按摘要)
         id: build
         uses: docker/build-push-action@v6
@@ -104,13 +104,14 @@ jobs:
           path: /tmp/digests-stable/*
           retention-days: 1
           
-  # Job 2-2: 构建预发布版 (无条件)
+  # Job 2-2: 构建预发布版 (Pre-release) - 仅在需要时运行
   build-pre:
     runs-on: ubuntu-latest
     needs: prepare
+    if: needs.prepare.outputs.should_build_pre == 'true'
     permissions:
       contents: read
-      packages: write
+      packages: write # 需要写 ghcr.io 的权限
     strategy:
       fail-fast: false
       matrix:
@@ -179,22 +180,24 @@ jobs:
   merge-stable:
     runs-on: ubuntu-latest
     needs: [prepare, build-stable]
-    if: success()
+    if: success() && needs.prepare.outputs.should_build_stable == 'true'
     permissions:
       contents: read
       packages: write
     steps:
-      - name: 登录到双仓库
+      - name: 登录到 Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/login-action@v3
+          
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: 下载所有稳定版摘要
         uses: actions/download-artifact@v4
         with:
@@ -205,6 +208,8 @@ jobs:
       - name: 创建并推送稳定版 manifest list 到双仓库
         working-directory: /tmp/digests
         run: |
+          if [ -z "$(ls -A .)" ]; then exit 1; fi
+          echo "为双仓库创建 manifest: latest, ${{ needs.prepare.outputs.stable_version }}"
           docker buildx imagetools create \
             --tag ${{ env.DOCKER_IMAGE }}:latest \
             --tag ${{ env.DOCKER_IMAGE }}:${{ needs.prepare.outputs.stable_version }} \
@@ -215,24 +220,28 @@ jobs:
       - name: 检查双仓库的最终镜像
         if: always()
         run: |
+          echo "--- 检查 Docker Hub 镜像 ---"
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:latest
+          echo "--- 检查 GHCR 镜像 ---"
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:latest
 
   # Job 3-2: 合并预发布版镜像
   merge-pre:
     runs-on: ubuntu-latest
     needs: [prepare, build-pre]
-    if: success()
+    if: success() && needs.prepare.outputs.should_build_pre == 'true'
     permissions:
       contents: read
       packages: write
     steps:
-      - name: 登录到双仓库
+      - name: 登录到 Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/login-action@v3
+          
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -248,6 +257,8 @@ jobs:
       - name: 创建并推送预发布版 manifest list 到双仓库
         working-directory: /tmp/digests
         run: |
+          if [ -z "$(ls -A .)" ]; then exit 1; fi
+          echo "为双仓库创建 manifest: dev, ${{ needs.prepare.outputs.pre_version }}"
           docker buildx imagetools create \
             --tag ${{ env.DOCKER_IMAGE }}:dev \
             --tag ${{ env.DOCKER_IMAGE }}:${{ needs.prepare.outputs.pre_version }} \
@@ -258,5 +269,7 @@ jobs:
       - name: 检查双仓库的最终镜像
         if: always()
         run: |
+          echo "--- 检查 Docker Hub 镜像 ---"
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:dev
+          echo "--- 检查 GHCR 镜像 ---"
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:dev
