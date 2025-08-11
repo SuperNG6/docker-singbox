@@ -261,3 +261,4 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:dev
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:dev
+          
