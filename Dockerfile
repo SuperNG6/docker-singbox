@@ -16,6 +16,7 @@ RUN git clone --depth 1 --branch ${VERSION} https://github.com/sagernet/sing-box
 RUN LD_FLAGS="-s -w -buildid= -X 'github.com/sagernet/sing-box/constant.Version=${VERSION}'" && \
     cd cmd/sing-box && \
     go build -trimpath -tags "with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale" \
+    -gcflags="all=-l=4" \
     -ldflags="$LD_FLAGS" \
     -o /src/sing-box
 
