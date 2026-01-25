@@ -15,7 +15,13 @@ ENV CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=$TARGETARCH
 
-RUN go build -v -trimpath \
+# 核心修改：根据 TARGETVARIANT 动态设置 GOAMD64
+RUN if [ "$TARGETARCH" = "amd64" ] && [ "$TARGETVARIANT" = "v3" ]; then \
+        export GOAMD64=v3; \
+    elif [ "$TARGETARCH" = "amd64" ] && [ "$TARGETVARIANT" = "v2" ]; then \
+        export GOAMD64=v2; \
+    fi && \
+    go build -v -trimpath \
     -tags "with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale,with_ccm,with_ocm,badlinkname,tfogo_checklinkname0" \
     -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=$VERSION' \
               -X 'internal/godebug.defaultGODEBUG=multipathtcp=0' \
