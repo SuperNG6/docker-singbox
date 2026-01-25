@@ -15,7 +15,10 @@ ENV CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=$TARGETARCH
 
-# 核心修改：根据 TARGETVARIANT 动态设置 GOAMD64
+# 根据 TARGETVARIANT 自动判断并设置 GOAMD64
+# 1. 如果是 amd64 且 variant=v3 -> GOAMD64=v3
+# 2. 如果是 amd64 且 variant=v2 -> GOAMD64=v2
+# 3. 其他情况 (包括 v1 或 arm64) -> 不设置 GOAMD64，使用默认值
 RUN if [ "$TARGETARCH" = "amd64" ] && [ "$TARGETVARIANT" = "v3" ]; then \
         export GOAMD64=v3; \
     elif [ "$TARGETARCH" = "amd64" ] && [ "$TARGETVARIANT" = "v2" ]; then \

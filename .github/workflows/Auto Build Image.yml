@@ -44,7 +44,9 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - linux/amd64
+          - linux/amd64        # v1 (默认兼容模式)
+          - linux/amd64/v2     # v2 (兼容 J4125 等)
+          - linux/amd64/v3     # v3 (高性能 AVX2)
           - linux/arm/v7
           - linux/arm64
           - linux/ppc64le
@@ -54,6 +56,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 准备平台名称 (用于 artifact)
+        # 将 slash 替换为 dash，例如 linux/amd64/v3 -> linux-amd64-v3
         run: echo "PLATFORM_PAIR=${{ matrix.platform }}" | tr '/' '-' >> $GITHUB_ENV
 
       - name: Set up QEMU
@@ -115,7 +118,9 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - linux/amd64
+          - linux/amd64        # v1
+          - linux/amd64/v2     # v2
+          - linux/amd64/v3     # v3
           - linux/arm/v7
           - linux/arm64
           - linux/ppc64le
