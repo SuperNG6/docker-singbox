@@ -49,17 +49,25 @@ with_gvisor, with_quic, with_dhcp, with_wireguard, with_utls, with_acme, with_cl
 
 通过 GitHub Actions 自动构建，支持以下架构：
 
-* `linux/amd64`
+* `linux/amd64` (v1/v2/v3 自动优化选择)
 * `linux/arm64` (arm64/v8)
 * `linux/arm/v7`
 * `linux/ppc64le`
 * `linux/s390x`
 
+> **Note:**
+> 多架构支持，为 `amd64` 平台同时提供了 `v1` (通用), `v2`, `v3` 三种优化构建。
+> 当执行 `docker pull` 或运行容器时，Docker 客户端会自动根据你的宿主机 CPU 支持的指令集级别，拉取并运行性能最优的那个镜像变体，无需任何手动配置。
+>
+> **性能优势：**
+> * **x86-64-v2**: 相比 v1，增加了 SSE3, SSE4, POPCNT 等指令集支持。适用于大多数现代 CPU（大约 2009 年以后）。
+> * **x86-64-v3**: 相比 v2，进一步增加了 AVX, AVX2, BMI1, BMI2, F16C, FMA, LZCNT, MOVBE, OSXSAVE 等指令集支持。适用于较新的 CPU（大约 2015 年以后，如 Haswell 及更新架构）。
+
 ---
 
 ## Dockerfile 设计说明
 
-* 使用多阶段构建，第一阶段基于 `golang:1.24`（Debian12） 进行编译，支持多种cpu架构。
+* 使用多阶段构建，第一阶段基于 `golang:1.25`（Debian12） 进行编译，支持多种cpu架构。
 * 运行阶段基于 `gcr.io/distroless/static-debian12:latest`，安全无 Shell。
 
 ---
