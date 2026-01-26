@@ -81,6 +81,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
+          provenance: false # 使得生成的镜像 manifest 更纯净，避免产生 unknown/attestation 类型
           context: .
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
@@ -152,6 +153,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
+          provenance: false # 使得生成的镜像 manifest 更纯净，避免产生 unknown/attestation 类型
           context: .
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
