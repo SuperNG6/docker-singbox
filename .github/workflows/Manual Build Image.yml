@@ -1,8 +1,17 @@
 name: Manual Build Docker Image
 
 on:
-  # 允许手动触发
+  # 允许手动触发，可选输入指定版本号
   workflow_dispatch:
+    inputs:
+      stable_version:
+        description: '稳定版版本号 (留空则使用 ReleaseTag 文件中的版本)'
+        required: false
+        default: ''
+      pre_version:
+        description: '预发布版版本号 (留空则使用 PreReleaseTag 文件中的版本)'
+        required: false
+        default: ''
   # 当 Dockerfile 发生变化时自动触发
   push:
     paths:
@@ -28,8 +37,10 @@ jobs:
       - name: 从文件设置版本号
         id: set-version
         run: |
-          STABLE_VERSION=$(cat ReleaseTag | head -n1)
-          PRE_VERSION=$(cat PreReleaseTag | head -n1)
+          INPUT_STABLE="${{ github.event.inputs.stable_version }}"
+          INPUT_PRE="${{ github.event.inputs.pre_version }}"
+          STABLE_VERSION="${INPUT_STABLE:-$(cat ReleaseTag | head -n1)}"
+          PRE_VERSION="${INPUT_PRE:-$(cat PreReleaseTag | head -n1)}"
           echo "stable_version=${STABLE_VERSION}" >> $GITHUB_OUTPUT
           echo "pre_version=${PRE_VERSION}" >> $GITHUB_OUTPUT
 
