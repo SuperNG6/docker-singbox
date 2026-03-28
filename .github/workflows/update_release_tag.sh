@@ -8,9 +8,24 @@ git config --local user.email "action@github.com"
 git config --local user.name "GitHub Action"
 
 # 通过 GitHub API 获取版本号
-# 增加 jq -e 确保解析成功，增加 || true 防止 curl 失败导致脚本直接退出（我们需要手动处理空值）
-RELEASE_TAG=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[] | select(.prerelease == false) | .tag_name' | head -n 1)
-PRERELEASE_TAG=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '.[] | select(.prerelease == true) | .tag_name' | head -n 1)
+# 使用 /releases/latest 获取最新稳定版，避免分页问题（默认只返回30条，若有超过30个预发布版在稳定版之后则会漏掉稳定版）
+# 使用 per_page=100 获取预发布版，减少遗漏风险
+# 若 GITHUB_TOKEN 存在则添加认证头以避免 API 速率限制
+CURL_AUTH_ARGS=()
+if [ -n "${GITHUB_TOKEN}" ]; then
+  CURL_AUTH_ARGS=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+fi
+
+RELEASE_TAG=$(curl -s \
+  -H "Accept: application/vnd.github.v3+json" \
+  "${CURL_AUTH_ARGS[@]}" \
+  "https://api.github.com/repos/SagerNet/sing-box/releases/latest" \
+  | jq -r '.tag_name // empty')
+PRERELEASE_TAG=$(curl -s \
+  -H "Accept: application/vnd.github.v3+json" \
+  "${CURL_AUTH_ARGS[@]}" \
+  "https://api.github.com/repos/SagerNet/sing-box/releases?per_page=100" \
+  | jq -r '[.[] | select(.prerelease == true)] | first | .tag_name // empty')
 
 # 初始化输出变量
 SHOULD_BUILD_STABLE=false
