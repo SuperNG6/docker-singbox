@@ -36,6 +36,8 @@ jobs:
           
       - name: 检查并更新版本标签文件
         id: check-version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash .github/workflows/update_release_tag.sh
         
   # Job 2-1: 构建稳定版 (Stable) - 仅在需要时运行
