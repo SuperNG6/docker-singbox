@@ -1,8 +1,13 @@
 name: Manual Build Docker Image
 
 on:
-  # 允许手动触发
+  # 允许手动触发，可选指定要构建的稳定版版本号（用于补构缺失版本）
   workflow_dispatch:
+    inputs:
+      stable_version:
+        description: '要构建的稳定版版本号（例如 v1.12.24），留空则使用 ReleaseTag 文件中的版本'
+        required: false
+        default: ''
   # 当 Dockerfile 发生变化时自动触发
   push:
     paths:
@@ -15,12 +20,14 @@ env:
   GHCR_IMAGE: ghcr.io/superng6/singbox
 
 jobs:
-  # Job 1: 准备阶段 - 直接读取本地文件中的版本号
+  # Job 1: 准备阶段 - 直接读取本地文件中的版本号（或使用手动指定版本）
   prepare:
     runs-on: ubuntu-latest
     outputs:
       stable_version: ${{ steps.set-version.outputs.stable_version }}
       pre_version: ${{ steps.set-version.outputs.pre_version }}
+      skip_latest: ${{ steps.set-version.outputs.skip_latest }}
+      skip_pre: ${{ steps.set-version.outputs.skip_pre }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,10 +35,22 @@ jobs:
       - name: 从文件设置版本号
         id: set-version
         run: |
-          STABLE_VERSION=$(cat ReleaseTag | head -n1)
+          # 若手动指定了版本号则使用该版本，否则从 ReleaseTag 文件读取
+          if [ -n "${{ inputs.stable_version }}" ]; then
+            STABLE_VERSION="${{ inputs.stable_version }}"
+            # 指定了特定版本（补构场景），跳过 latest 标签和预发布构建
+            SKIP_LATEST=true
+            SKIP_PRE=true
+          else
+            STABLE_VERSION=$(cat ReleaseTag | head -n1)
+            SKIP_LATEST=false
+            SKIP_PRE=false
+          fi
           PRE_VERSION=$(cat PreReleaseTag | head -n1)
           echo "stable_version=${STABLE_VERSION}" >> $GITHUB_OUTPUT
           echo "pre_version=${PRE_VERSION}" >> $GITHUB_OUTPUT
+          echo "skip_latest=${SKIP_LATEST}" >> $GITHUB_OUTPUT
+          echo "skip_pre=${SKIP_PRE}" >> $GITHUB_OUTPUT
 
   # Job 2-1: 构建稳定版 (无条件)
   build-stable:
@@ -105,10 +124,11 @@ jobs:
           path: /tmp/digests-stable/*
           retention-days: 1
           
-  # Job 2-2: 构建预发布版 (无条件)
+  # Job 2-2: 构建预发布版 (无条件，除非手动指定了特定稳定版)
   build-pre:
     runs-on: ubuntu-latest
     needs: prepare
+    if: needs.prepare.outputs.skip_pre != 'true'
     permissions:
       contents: read
       packages: write
@@ -207,24 +227,28 @@ jobs:
       - name: 创建并推送稳定版 manifest list 到双仓库
         working-directory: /tmp/digests
         run: |
+          # 若指定了特定版本（补构场景），不推送 latest 标签以避免覆盖当前最新版
+          LATEST_TAGS=""
+          if [ "${{ needs.prepare.outputs.skip_latest }}" != "true" ]; then
+            LATEST_TAGS="--tag ${{ env.DOCKER_IMAGE }}:latest --tag ${{ env.GHCR_IMAGE }}:latest"
+          fi
           docker buildx imagetools create \
-            --tag ${{ env.DOCKER_IMAGE }}:latest \
+            $LATEST_TAGS \
             --tag ${{ env.DOCKER_IMAGE }}:${{ needs.prepare.outputs.stable_version }} \
-            --tag ${{ env.GHCR_IMAGE }}:latest \
             --tag ${{ env.GHCR_IMAGE }}:${{ needs.prepare.outputs.stable_version }} \
             $(printf '${{ env.DOCKER_IMAGE }}@sha256:%s ' *)
           
       - name: 检查双仓库的最终镜像
         if: always()
         run: |
-          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:latest
-          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:latest
+          docker buildx imagetools inspect ${{ env.DOCKER_IMAGE }}:${{ needs.prepare.outputs.stable_version }}
+          docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:${{ needs.prepare.outputs.stable_version }}
 
   # Job 3-2: 合并预发布版镜像
   merge-pre:
     runs-on: ubuntu-latest
     needs: [prepare, build-pre]
-    if: success()
+    if: success() && needs.prepare.outputs.skip_pre != 'true'
     permissions:
       contents: read
       packages: write
