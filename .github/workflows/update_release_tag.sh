@@ -25,7 +25,7 @@ PRERELEASE_TAG=$(curl -s \
   -H "Accept: application/vnd.github.v3+json" \
   "${CURL_AUTH_ARGS[@]}" \
   "https://api.github.com/repos/SagerNet/sing-box/releases?per_page=100" \
-  | jq -r '[.[] | select(.prerelease == true)] | first | .tag_name // empty')
+  | jq -r 'if type == "array" then ([.[] | select(.prerelease == true)] | first | .tag_name // empty) else empty end')
 
 # 初始化输出变量
 SHOULD_BUILD_STABLE=false
