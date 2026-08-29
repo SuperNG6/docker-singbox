@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM mirror.gcr.io/library/golang:1.26.5 AS builder
+FROM --platform=$BUILDPLATFORM mirror.gcr.io/library/golang:1.26 AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
