@@ -13,19 +13,40 @@ git config --local user.name "GitHub Action"
 # 若 GITHUB_TOKEN 存在则添加认证头以避免 API 速率限制
 CURL_AUTH_ARGS=()
 if [ -n "${GITHUB_TOKEN}" ]; then
-  CURL_AUTH_ARGS=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  CURL_AUTH_ARGS=(-H "Authorization: token ${GITHUB_TOKEN}")
 fi
 
-RELEASE_TAG=$(curl -s \
-  -H "Accept: application/vnd.github.v3+json" \
-  "${CURL_AUTH_ARGS[@]}" \
-  "https://api.github.com/repos/SagerNet/sing-box/releases/latest" \
-  | jq -r '.tag_name // empty')
-PRERELEASE_TAG=$(curl -s \
-  -H "Accept: application/vnd.github.v3+json" \
-  "${CURL_AUTH_ARGS[@]}" \
-  "https://api.github.com/repos/SagerNet/sing-box/releases?per_page=100" \
-  | jq -r 'if type == "array" then ([.[] | select(.prerelease == true)] | first | .tag_name // empty) else empty end')
+fetch_json() {
+  local url="$1"
+  local response=""
+
+  response=$(curl -sS --fail \
+    --retry 3 \
+    --retry-delay 2 \
+    --retry-all-errors \
+    -H "Accept: application/vnd.github.v3+json" \
+    "${CURL_AUTH_ARGS[@]}" \
+    "${url}" || true)
+
+  if [ -z "${response}" ]; then
+    echo ""
+    return
+  fi
+
+  if ! printf '%s' "${response}" | jq -e . >/dev/null 2>&1; then
+    echo "警告: GitHub API 返回了无效 JSON，已跳过本次更新。"
+    echo ""
+    return
+  fi
+
+  printf '%s' "${response}"
+}
+
+LATEST_RELEASE_JSON=$(fetch_json "https://api.github.com/repos/SagerNet/sing-box/releases/latest")
+ALL_RELEASES_JSON=$(fetch_json "https://api.github.com/repos/SagerNet/sing-box/releases?per_page=100")
+
+RELEASE_TAG=$(printf '%s' "${LATEST_RELEASE_JSON}" | jq -r '.tag_name // empty')
+PRERELEASE_TAG=$(printf '%s' "${ALL_RELEASES_JSON}" | jq -r 'if type == "array" then ([.[] | select(.prerelease == true)] | first | .tag_name // empty) else empty end')
 
 # 初始化输出变量
 SHOULD_BUILD_STABLE=false
