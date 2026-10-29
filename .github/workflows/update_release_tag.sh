@@ -19,27 +19,34 @@ fi
 fetch_json() {
   local url="$1"
   local response=""
+  local attempt
 
-  response=$(curl -sS --fail \
-    --retry 3 \
-    --retry-delay 2 \
-    --retry-all-errors \
-    -H "Accept: application/vnd.github.v3+json" \
-    "${CURL_AUTH_ARGS[@]}" \
-    "${url}" || true)
+  # 每次请求独立捕获响应，避免重试时将截断响应与新响应拼接。
+  # stdout 只用于返回 JSON；诊断信息必须写入 stderr。
+  for attempt in {1..4}; do
+    if response=$(curl --http1.1 -sS --fail \
+      --connect-timeout 15 \
+      --max-time 60 \
+      -H "Accept: application/vnd.github.v3+json" \
+      "${CURL_AUTH_ARGS[@]}" \
+      "${url}"); then
+      if printf '%s' "${response}" | jq -e -s \
+        'length == 1 and (.[0] | type == "object" or type == "array")' >/dev/null 2>&1; then
+        printf '%s' "${response}"
+        return 0
+      fi
+      echo "警告: GitHub API 返回了空响应或无效 JSON ($attempt/4)。" >&2
+    else
+      echo "警告: GitHub API 请求失败 ($attempt/4)。" >&2
+    fi
 
-  if [ -z "${response}" ]; then
-    echo ""
-    return
-  fi
+    if [ "$attempt" -lt 4 ]; then
+      sleep 2
+    fi
+  done
 
-  if ! printf '%s' "${response}" | jq -e . >/dev/null 2>&1; then
-    echo "警告: GitHub API 返回了无效 JSON，已跳过本次更新。"
-    echo ""
-    return
-  fi
-
-  printf '%s' "${response}"
+  echo "警告: GitHub API 重试耗尽，跳过该版本的本次更新: ${url}" >&2
+  return 0
 }
 
 LATEST_RELEASE_JSON=$(fetch_json "https://api.github.com/repos/SagerNet/sing-box/releases/latest")
